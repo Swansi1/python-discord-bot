@@ -71,4 +71,4 @@ async def on_member_join(member):
 
 
 
-client.run('MTA5MTMwOTY4NDk4MTUxNDI3MA.GfEBla.IO-j6pnGx34p4fX3ipYlg0lKvpcpZmm9fT0uXA')
+client.run('')
