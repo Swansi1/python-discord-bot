@@ -1,42 +1,49 @@
+"""User, Lesson adatszerkezetek"""
 import datetime
+from enum import Enum
 
 class User():
     "Egy adott user felhasználónak az adatainak tárolására szolgáló osztály"
-            
-    def __init__(self, userDict) -> None:
-        "Dict alapján init user"
-        self._dcid = userDict["dcid"]
-        self._username = userDict["username"]
-        self._passwd = userDict["password"]
-        self._eloadasShow = userDict["eloadasShow"]
-    
+
+    def __init__(self, user_dict) -> None:
+        self._dcid = user_dict["dcid"]
+        self._username = user_dict["username"]
+        self._passwd = user_dict["password"]
+        self._eloadas_show = user_dict["eloadasShow"]
+        self.is_error_reported = False
+
     @property
-    def dcid(self):
+    def dcid(self) -> str:
+        "Vissza adja a dcid-t"
         return self._dcid
-    
+
     @property
-    def username(self):
+    def username(self) -> str:
+        "Vissza adja az usernamet"
         return self._username
-    
+
     @property
-    def password(self):
+    def password(self) -> str:
+        "Vissza adja a jelszót"
         return self._passwd
-    
+
     @property
-    def eloadasShow(self):
-        return self._eloadasShow
+    def eloadas_show(self) -> int:
+        "Vissza adja, hogy bejár-e előadásra"
+        return self._eloadas_show
 
 class Lesson():
-    def __init__(self,ora: dict) -> None:
-        # ilet kap: {'start': '1681308000000', 'end': '1681311600000', 'title': 'Formális nyelvek gyakorlat (IBK403G)', 'location': 'IR-219-3 - Irinyi 219 tanterem(IR-219-3)'}
-        ora = self._lessonFormater(ora)
-        self._start = int(ora["start"]) / 1000 #! datetime.datetime.fromtimestamp miatt, hogy ott ne kelljen osztogatni
-        self._end = int(ora["end"]) / 1000 
+    "óra kezelése"
+    def __init__(self, ora: dict) -> None:
+        ora = self._lesson_formater(ora)
+        # ! datetime.datetime.fromtimestamp miatt, hogy ott ne kelljen osztogatni
+        self._start = int(ora["start"]) / 1000
+        self._end = int(ora["end"]) / 1000
         self._title = ora["title"]
         self._location = ora["location"]
-        self._IsEA = ora["isEA"] # adott óra előadás-e
-        
-        
+        self._is_ea = ora["isEA"]  # adott óra előadás-e
+        self._type = ora["type"]
+
     @property
     def start_timestamp(self) -> int:
         "vissza adja az óra kezdését timestamptben epocs-ban NEM milisecben!"
@@ -46,63 +53,85 @@ class Lesson():
     def end_timestamp(self) -> int:
         "Vissza adja az óra végét timestamptben epocsban NEM milisecben!"
         return self._end
-    
+
     @property
     def title(self) -> str:
         "Vissza adja az óra nevét"
         return self._title
-    
+
     @property
     def location(self) -> str:
         "Vissza adja az óra helyét"
         return self._location
 
     @property
-    def isEA(self) -> bool:
+    def is_ea(self) -> bool:
         "Vissza adja, hogy az adott óra Előadás-e, Igaz ha előadás"
-        return self._IsEA
-    
+        return self._is_ea
+
+    @property
+    def type(self) -> Enum:
+        "Enum lesson type"
+        return self._type
+
     def get_start_date(self) -> datetime.date:
         "Vissza adja az óra kezdését datetime.date formátumban"
-        return datetime.date.fromtimestamp(self._start) 
-    
+        return datetime.date.fromtimestamp(self._start)
+
     def get_start_datetime(self) -> datetime.datetime:
         "Vissza adja az óra kezdését datetime.date formátumban"
-        return datetime.datetime.utcfromtimestamp(self._start) #TODO nem biztos de itt fromtimestamp volt, de a másik kell szerintem mert a noe jól kéri le az időt..
-    
+        return datetime.datetime.utcfromtimestamp(self._start)
+
     def get_end_datetime(self) -> datetime.datetime:
         "Vissza adja az óra befejezésének datetime.datetime-ját"
         return datetime.datetime.utcfromtimestamp(self._end)
-    
+
     def get_mettol_meddig(self) -> str:
         "Vissza adja hogy mikor, mettől meddig tart az óra pl: 2023.04.12 14:00 - 16:00"
-        return self.get_start_datetime().strftime("%Y-%m-%d %H:%M") + " - " + self.get_end_datetime().strftime("%H:%M")
-    
-    def _lessonFormater(self,lesson):
+        ora_kezdes = self.get_start_datetime().strftime("%Y-%m-%d %H:%M")
+        ora_vege = self.get_end_datetime().strftime("%H:%M")
+        return ora_kezdes + " - " + ora_vege
+
+    def _lesson_formater(self, lesson):
         "Sok hülyeség kiszedése, timestampok fixálása, óra neve rövidítése"
         # print(lesson)
         # title syntax
         # syntax = '[Órarend Szünnap]    -Tavaszi tanítási szünet (Spring school break)'
-        # syntax = "[Óra] Hardware és software rendszerek verifikációja (IBK615G)  - IB615G-1   Minden hét (Gombás Éva Dr.) (IR-223-3 - Irinyi 223 PC-terem(IR-223-3))"
-        newLesson = {}
-        startTimeStamp = lesson["start"].split("(")[1].split(")")[0]
-        # startDateTime = datetime.datetime.utcfromtimestamp(int(startTimeStamp)/1000.0)
+        # syntax = "[Óra] Hardware és software rendszerek verifikációja (IBK615G)
+        new_lesson = {}
+        start_time_stamp = lesson["start"].split("(")[1].split(")")[0]
+        # startDateTime = datetime.datetime.utcfromtimestamp(int(start_time_stamp)/1000.0)
 
-        endTimeStamp =lesson["end"].split("(")[1].split(")")[0]
-        # endDateTime = datetime.datetime.utcfromtimestamp(int(endTimeStamp)/1000.0)
-        newTitle = lesson["title"]
-        isEA = False
+        end_time_stamp = lesson["end"].split("(")[1].split(")")[0]
+        # endDateTime = datetime.datetime.utcfromtimestamp(int(end_time_stamp)/1000.0)
+        new_title = lesson["title"]
+        is_ea = False
+        types = LessonType.IDK
         try:
-            if 'e)' in newTitle or 'E)' in newTitle:
-                isEA = True
-                
-            if '[Óra]' in newTitle: # Todo több iffel bővíteni (nem tudom hogy írja a vizsgákat) VIZSGA: [Vizsga]
-                newTitle = newTitle.split("]")[1].split("-")[0].strip()
+            if 'e)' in new_title or 'E)' in new_title:
+                is_ea = True
+                types = LessonType.EA
+
+            # Todo több iffel bővíteni (nem tudom hogy írja a vizsgákat) VIZSGA: [Vizsga]
+            if '[Óra]' in new_title:
+                new_title = new_title.split("]")[1].split("-")[0].strip()
+
+            if '[Vizsga]' in new_title:
+                types = LessonType.VIZSGA
         except Exception as e:
-            pass
-        newLesson["start"] = startTimeStamp
-        newLesson["end"] = endTimeStamp
-        newLesson["title"] = newTitle
-        newLesson["location"] = lesson["location"]
-        newLesson["isEA"] = isEA
-        return newLesson
+            print("hiba", str(e))
+        new_lesson["start"] = start_time_stamp
+        new_lesson["end"] = end_time_stamp
+        new_lesson["title"] = new_title
+        new_lesson["location"] = lesson["location"]
+        new_lesson["isEA"] = is_ea
+        new_lesson["type"] = types
+        return new_lesson
+
+
+class LessonType(Enum):
+    "Lesson types"
+    EA = "Előadás"
+    GYAK = "Gykorlat"
+    VIZSGA = "Vizsga"
+    IDK = "ismeretlen"
