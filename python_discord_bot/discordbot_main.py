@@ -9,15 +9,16 @@ from discord.ui import button, TextInput
 from discord.ext import tasks
 
 # Saját importok
-from UserManager import UsersManage
-from NeptunAPI import Api
-from Lesson import CalendarLesson, Lesson
+from userManager import UsersManage
+from neptunAPI import Api
+from lesson import CalendarLesson, Lesson
 from config import Config
 
 config = Config()
 if config.is_error is True:
     raise FileNotFoundError("File nem található")
-class PersistentView(discord.ui.View):
+
+class OrarendValasztoView(discord.ui.View):
     "Nézet az órarend választóhoz, gombok bot resi után is működjenek"
     def __init__(self):
         super().__init__(timeout=None)
@@ -30,7 +31,7 @@ class PersistentView(discord.ui.View):
             calendars = CalendarLesson(api_data["calendarData"], api_data["eloadasShow"])
             mai = calendars.get_today_lesson()
             embed = self.embed_generator(mai, "Mai óráid")
-            await interact.response.send_message(embed=embed, view=PersistentView(), ephemeral=True)
+            await interact.response.send_message(embed=embed, view=OrarendValasztoView(), ephemeral=True)
         else:
             embed = client.get_reg_error_embed(api_data["ErrorMessage"])
             await interact.response.send_message(embed=embed)
@@ -43,7 +44,7 @@ class PersistentView(discord.ui.View):
             calendars = CalendarLesson(api_data["calendarData"], api_data["eloadasShow"])
             mai = calendars.get_next_lesson()
             embed = self.embed_generator(mai, "Következő órád")
-            await interact.response.send_message(embed=embed, view=PersistentView(), ephemeral=True)
+            await interact.response.send_message(embed=embed, view=OrarendValasztoView(), ephemeral=True)
         else:
             embed = client.get_reg_error_embed(api_data["ErrorMessage"])
             await interact.response.send_message(embed=embed)
@@ -56,7 +57,7 @@ class PersistentView(discord.ui.View):
             calendars = CalendarLesson(api_data["calendarData"], api_data["eloadasShow"])
             mai = calendars.get_tomorrow_lesson()
             embed = self.embed_generator(mai, "Holnapi óráid")
-            await interact.response.send_message(embed=embed, view=PersistentView(), ephemeral=True)
+            await interact.response.send_message(embed=embed, view=OrarendValasztoView(), ephemeral=True)
         else:
             embed = client.get_reg_error_embed(api_data["ErrorMessage"])
             await interact.response.send_message(embed=embed)
@@ -69,7 +70,7 @@ class PersistentView(discord.ui.View):
             calendars = CalendarLesson(api_data["calendarData"], api_data["eloadasShow"])
             mai = calendars.get_exam()
             embed = self.embed_generator(mai, "Következő vizsgáid")
-            await interact.response.send_message(embed=embed, view=PersistentView(), ephemeral=True)
+            await interact.response.send_message(embed=embed, view=OrarendValasztoView(), ephemeral=True)
         else:
             embed = client.get_reg_error_embed(api_data["ErrorMessage"])
             await interact.response.send_message(embed=embed)
@@ -78,12 +79,15 @@ class PersistentView(discord.ui.View):
         "vissza adja az órarend embeded"
         embed=discord.Embed(title=orarend_title, color=0x16df63)
         for ora in orararend:
-            oraname = ora.title + " \n("+ ora.location +")"
+            # oraname = ora.title + " \n("+ ora.location +")"
+            location_url = api.get_terem_location(ora.location)
+            oraname = ora.title
             kiiras = ora.get_mettol_meddig()
             embed.add_field(name=oraname, value=kiiras, inline=False)
+            embed.add_field(name="Terem:", value="["+ora.location+"]("+ location_url +")", inline=False)
         if len(orararend) == 0:
-            embed_value = "Lehet lazítani vagy tanülni a kövi zhra 😉"
-            embed.add_field(name="Nincs órád", value=embed_value,inline=False)
+            embed_value = "Lehet lazítani vagy tanulni a kövi zhra 😉"
+            embed.add_field(name="Nincs órád / vizsgád", value=embed_value,inline=False)
         idojaras = api.weather.get_current_weather_string()
         embed.set_footer(text=idojaras)
         return embed
@@ -102,7 +106,7 @@ class MyClient(discord.Client):
         await self.tree.sync()
         self.background_task.start() # loop indítása
         # gombok működésre bírása, alapból bot reset után nem csinálna semmit
-        self.add_view(PersistentView())
+        self.add_view(OrarendValasztoView())
 
     async def on_member_join(self, member):
         "Member join to guild (dc server)"
@@ -151,7 +155,7 @@ class MyClient(discord.Client):
             print(minutes)
             if 50 <= minutes <= 59 and hours == 0: # ha 50
                 print("Óra kezdéséig van még 50-60 perc")
-                view = PersistentView()
+                view = OrarendValasztoView()
                 embed = view.embed_generator([next_lesson], "Hamarosan órád lesz!")
                 current_user = self.get_user(int(user.dcid))
                 if current_user is None:
@@ -187,21 +191,48 @@ client = MyClient(intents_req=intents)
 @client.tree.command(name="sync")
 async def sync(interaction: discord.Interaction):
     "sync command just for test"
-    await client.tree.sync()
-    client.add_view(PersistentView())
-    # néha ledobja a 'láncot' és vissza kell rá rakni a view-et de ha nem jó a loopba be kell rakni
-    await interaction.response.send_message("success", ephemeral=True)
+    if interaction.user.id == config.owner_id: # ne tudja futtatni mindenki
+        await client.tree.sync()
+        client.add_view(OrarendValasztoView())
+        # néha ledobja a 'láncot' és vissza kell rá rakni a view-et de ha nem jó a loopba be kell rakni
+        await interaction.response.send_message("success", ephemeral=True)
+    else:
+        await interaction.response.send_message("Developer parancs", ephemeral=True)
 
 @client.tree.command(name="register")
 async def reg_command(interaction: discord.Interaction):
     "Regisztrációs parancs"
+    # ha van már regisztrálva akkor ne csináljon semmit
+    current_user = users.get_user(interaction.user.id)
+    if current_user is None:
+        await interaction.response.send_modal(Register())
+    else:
+        # regelve van már 
+        embed = client.get_orarend_valaszto_embed()
+        await interaction.response.send_message(embed=embed, view=OrarendValasztoView())
+
+@client.tree.command(name="delete")
+async def delete_command(interaction: discord.Interaction):
+    "Felhasználó törlése"
+    success = api.remove_user(interaction.user.id)
+    print(success)
+    if success:
+        users.remove_user(interaction.user.id)
+    await interaction.response.send_message("Sikeres törlés")
+
+@client.tree.command(name="update")
+async def delete_command(interaction: discord.Interaction):
+    "Felhasználó szerkesztése"
+    success = api.remove_user(interaction.user.id)
+    if success:
+        users.remove_user(interaction.user.id)
     await interaction.response.send_modal(Register())
 
 @client.tree.command(name="orarend")
 async def orarend(interaction: discord.Interaction):
     """Órarend parancsok"""
     embed = client.get_orarend_valaszto_embed()
-    await interaction.response.send_message(embed=embed, view=PersistentView())
+    await interaction.response.send_message(embed=embed, view=OrarendValasztoView())
 class Register(discord.ui.Modal, title='Regisztráció'):
     "Regisztrációs nézet"
     username = TextInput(label='Neptun kód', placeholder="Neptun kód", required=True)
@@ -222,7 +253,7 @@ class Register(discord.ui.Modal, title='Regisztráció'):
             reged = api.register_user(self.username, self.passwd, eloadas_bejaras,interaction.user.id)
             users.add_user(reged)
             embed = client.get_orarend_valaszto_embed()
-            await interaction.response.send_message(embed=embed, view=PersistentView())
+            await interaction.response.send_message(embed=embed, view=OrarendValasztoView())
         else: # sikertelen reg
             embed = client.get_reg_error_embed(reg_teszt["msg"])
             await interaction.response.send_message(embed=embed)
@@ -244,29 +275,11 @@ async def on_join_reg(ctx: discord.Member):
     else: # ha regisztrálva van
         direct_message = await ctx.create_dm()
         embed = client.get_orarend_valaszto_embed()
-        await direct_message.send(embed=embed, view=PersistentView())
+        await direct_message.send(embed=embed, view=OrarendValasztoView())
 
 client.run(config.bot_token)
 
-# TODO update user account
-
-#! tesz része
-# api_user = api.get_users() # list kell nekünk
-# users.set_user(api_user) # be vannak á
-
-
-# teszttt = api.get_neptun_calendar("281840031738626058")
-# calendars = CalendarLesson(teszttt["calendarData"])
-# print("/=======")
-# print(calendars.get_today_lesson())
-
-
-
-
-# orarend["calendarData"][0]["start"]
-# orarend["calendarData"][0]["end"]
-# orarend["calendarData"][0]["title"]
-# orarend["calendarData"][0]["location"]
-
 
 #? neptun adatok lekérdezése https://github.com/RuzsaGergely/Atlantisz
+#? https://github.com/Rapptz/discord.py/tree/master/examples
+#! FL301-17, BO-211-3 

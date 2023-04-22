@@ -39,9 +39,36 @@ class Api():
         data = req.json() # vissza adott jsont bele kell appendolni a _users-be
         return data
 
+    def remove_user(self,dcid) -> bool:
+        "User törlése az adatbázisból"
+        full_url = self._reg_url
+        data = {"interaction": "remove", "dcid": str(dcid)}
+        req = requests.post(url = full_url,data=data, timeout=5)
+        print(req)
+        return req.text
+
     def get_neptun_calendar(self, user:User) -> dict:
         "Lekérdezi az usernek az órarendjét 8 napot kér le"
-        return self._neptun_api_req(user.username,user.password,user.eloadas_show, 8)
+        try:
+            return self._neptun_api_req(user.username,user.password,user.eloadas_show, 8)
+        except:
+            return {"ErrorMessage":"Hiba az adatok lekérése közben"}
+
+    @staticmethod
+    def get_terem_location(terem_kod) -> str:
+        "Vissza adja a terem google maps url linkjét ha van"
+        url = "http://service.neptun.u-szeged.hu/terem/teremkereso.aspx"
+        payload={'search': terem_kod.split(" -")[0]}
+        response = requests.request("POST", url, data=payload)
+        rt = response.text
+        print(rt)
+        try:
+            google_maps_pattern = rt.split("https://www.google.com/maps/search/")[1].split('"')[0]
+        except IndexError:
+            google_maps_pattern = "404"
+        return "https://www.google.com/maps/search/" + google_maps_pattern
+
+        
 
     def get_neptun_reg_teszt(self,username,password):
         "Felhasználónév / jelszó ellenőrző hogy jó adatokat adott-e meg"

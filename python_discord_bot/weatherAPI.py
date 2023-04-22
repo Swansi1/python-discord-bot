@@ -23,10 +23,13 @@ class WeatherApi():
         frissites_str = "\nUtolsó frissítés: " + idojaras["last_update"]
         return idojaras_str + homerseklet_str + frissites_str
 
-    def update_weather(self): # TODO request try
+    def update_weather(self):
         "jelenlegi időjárás frissítése"
-        req = requests.get(self._url, timeout=5)
-        data = req.json()
+        try: # TODO valami értelmes cuccot
+            req = requests.get(self._url, timeout=5)
+            data = req.json()
+        except Exception:
+            pass
         condition_hun = self._status_to_text(
             data["current"]["condition"]["code"])
         dict_return = {"name": data["location"]["name"], "condition": condition_hun,

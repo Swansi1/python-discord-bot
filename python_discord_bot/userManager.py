@@ -32,6 +32,14 @@ class UsersManage():
         "Összes user beállítása"
         self._init_users(users)
 
+    def remove_user(self, dcid):
+        "Kitörli a felhasználót user id alapján"
+        new_users = []
+        for user in self._users:
+            if user.dcid != str(dcid):
+                new_users.append(user)
+        self._users = new_users
+
     def add_user(self,user):
         "Új user regisztrálása user: List[dict]"
         self._init_users(user)

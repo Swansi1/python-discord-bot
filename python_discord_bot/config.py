@@ -18,6 +18,11 @@ class Config():
         return self._config["NEPTUN_API_URL"]
 
     @property
+    def owner_id(self) -> str:
+        "neptun api URL "
+        return self._config["AUTHOR_DC_ID"]
+
+    @property
     def weather_api(self) -> str:
         "Weather api url"
         return self._config["WEATHER_API_URL"]
