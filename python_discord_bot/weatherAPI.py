@@ -25,11 +25,15 @@ class WeatherApi():
 
     def update_weather(self):
         "jelenlegi időjárás frissítése"
-        try: # TODO valami értelmes cuccot
+        try: # TODO valami értelmes cuccot  data["current"]["condition"]["code"])
+            # UnboundLocalError: cannot access local variable 'data' where it is not associated with a value
             req = requests.get(self._url, timeout=5)
             data = req.json()
+            print(data)
         except Exception:
-            pass
+            data["location"]["name"] = "Szeged"
+            data["current"]["temp_c"] = "Not Found"
+            data["current"]["last_updated"] = "--"
         condition_hun = self._status_to_text(
             data["current"]["condition"]["code"])
         dict_return = {"name": data["location"]["name"], "condition": condition_hun,

@@ -1,5 +1,5 @@
 """felhasználók kezelése"""
-from dataStruct import User
+from .dataStruct import User
 
 class UsersManage():
     "Regisztrált felhasználók kezelése"

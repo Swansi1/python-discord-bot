@@ -9,10 +9,10 @@ from discord.ui import button, TextInput
 from discord.ext import tasks
 
 # Saját importok
-from userManager import UsersManage
-from neptunAPI import Api
-from lesson import CalendarLesson, Lesson
-from config import Config
+from .userManager import UsersManage
+from .neptunAPI import Api
+from .lesson import CalendarLesson, Lesson
+from .config import Config
 
 config = Config()
 if config.is_error is True:

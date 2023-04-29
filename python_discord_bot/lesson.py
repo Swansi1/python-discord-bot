@@ -1,6 +1,6 @@
 """Órarend műveletek kezelése"""
 import datetime
-from dataStruct import Lesson, LessonType
+from .dataStruct import Lesson, LessonType
 
 class CalendarLesson():
     "Órarend kezelése"

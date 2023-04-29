@@ -1,8 +1,8 @@
 "Neptun api kommunikáció"
 import datetime
 import requests
-from weatherAPI import WeatherApi
-from dataStruct import User
+from .weatherAPI import WeatherApi
+from .dataStruct import User
 
 class Api():
     """"Kommunikáció az API-val"""
@@ -52,7 +52,7 @@ class Api():
         try:
             return self._neptun_api_req(user.username,user.password,user.eloadas_show, 8)
         except:
-            return {"ErrorMessage":"Hiba az adatok lekérése közben"}
+            return {"ErrorMessage":"Hiba az adatok lekérése közben\nLehetséges, hogy a szerver nem válaszol várj egy kicsit."}
 
     @staticmethod
     def get_terem_location(terem_kod) -> str:
